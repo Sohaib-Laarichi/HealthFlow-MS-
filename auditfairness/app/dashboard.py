@@ -32,6 +32,9 @@ POSTGRES_DB = os.getenv('POSTGRES_DB', 'healthflow')
 POSTGRES_USER = os.getenv('POSTGRES_USER', 'healthflow')
 POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'healthflow123')
 
+# Demo mode: when enabled and no DB data, show synthetic sample data so the dashboard isn't empty
+DEMO_MODE = os.getenv('DASH_DEMO_MODE', '1') == '1'
+
 class AuditFairnessAnalyzer:
     """
     Analyzer for model fairness and data drift monitoring
@@ -57,7 +60,7 @@ class AuditFairnessAnalyzer:
             raise
     
     def get_prediction_data(self, days_back: int = 7) -> pd.DataFrame:
-        """Get prediction data from database"""
+        """Get prediction data from database; if empty and DEMO_MODE enabled, return synthetic demo data"""
         try:
             query = """
                 SELECT 
@@ -82,12 +85,66 @@ class AuditFairnessAnalyzer:
             if not df.empty:
                 df['prediction_timestamp'] = pd.to_datetime(df['prediction_timestamp'])
                 df['created_at'] = pd.to_datetime(df['created_at'])
+                return df
+            
+            # If no data and demo mode on, generate synthetic demo dataset
+            if DEMO_MODE:
+                logger.warning("No prediction_results found; using DEMO_MODE synthetic data for visualization")
+                return self.generate_demo_data(days_back)
             
             return df
             
         except Exception as e:
             logger.error(f"Error fetching prediction data: {e}")
+            # In error case, still allow demo mode to render something
+            if DEMO_MODE:
+                return self.generate_demo_data(days_back)
             return pd.DataFrame()
+    
+    def generate_demo_data(self, days_back: int = 7) -> pd.DataFrame:
+        """Generate a synthetic dataset mimicking prediction_results schema for UI demo"""
+        np.random.seed(42)
+        now = datetime.utcnow()
+        n = max(100, days_back * 40)
+        timestamps = [now - timedelta(hours=np.random.randint(0, days_back * 24 + 1)) for _ in range(n)]
+        timestamps.sort()
+        data = []
+        for i in range(n):
+            pid = f"PSEUDO_{1000 + i}"
+            age = int(np.clip(np.random.normal(60, 15), 18, 95))
+            gender = np.random.choice(['male', 'female'])
+            male = 1 if gender == 'male' else 0
+            female = 1 if gender == 'female' else 0
+            risk = float(np.clip(np.random.beta(2, 5), 0, 1))
+            conf = float(np.clip(np.random.normal(0.8, 0.1), 0, 1))
+            features = {
+                'patient_pseudo_id': pid,
+                'age': age,
+                'gender_male': male,
+                'gender_female': female,
+                'heart_rate_mean': float(np.clip(np.random.normal(75, 10), 40, 140)),
+                'systolic_bp_last': float(np.clip(np.random.normal(125, 15), 90, 200)),
+                'diastolic_bp_last': float(np.clip(np.random.normal(80, 10), 50, 120)),
+                'glucose_last': float(np.clip(np.random.normal(105, 20), 60, 300))
+            }
+            shap_vals = {
+                'age': float(np.random.normal(0, 0.02)),
+                'gender_male': float(np.random.normal(0, 0.01)),
+                'heart_rate_mean': float(np.random.normal(0, 0.05)),
+                'glucose_last': float(np.random.normal(0, 0.04))
+            }
+            data.append({
+                'patient_pseudo_id': pid,
+                'risk_score': risk,
+                'prediction_confidence': conf,
+                'shap_values_json': json.dumps(shap_vals),
+                'feature_vector_json': json.dumps(features),
+                'model_version': 'v-demo',
+                'prediction_timestamp': timestamps[i],
+                'created_at': timestamps[i]
+            })
+        df = pd.DataFrame(data)
+        return df
     
     def extract_features_from_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Extract features from feature_vector_json column"""
@@ -297,8 +354,16 @@ navbar = dbc.Navbar(
 )
 
 # Define the layout
+# Demo banner if enabled
+_demo_banner = dbc.Alert(
+    "Demo mode: Showing synthetic sample data. Ingest real data to replace this, or set DASH_DEMO_MODE=0 to disable.",
+    color="info",
+    className="mb-3"
+) if DEMO_MODE else html.Div()
+
 app.layout = dbc.Container([
     navbar,
+    _demo_banner,
 
     dbc.Row([
         dbc.Col([

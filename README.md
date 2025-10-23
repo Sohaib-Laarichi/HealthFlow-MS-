@@ -99,7 +99,57 @@ docker compose ps
 4. **Accéder aux interfaces**
 - **ScoreAPI Documentation** : http://localhost:8082/docs
 - **AuditFairness Dashboard** : http://localhost:8083
+- **DataManager (gestion des données)** : http://localhost:8084/docs
 - **ProxyFHIR Health** : http://localhost:8081/api/v1/fhir/health
+
+## 🔗 Liens utiles
+
+- Frontends et APIs
+  - AuditFairness Dashboard: http://localhost:8083
+  - DataManager (CRUD des données): http://localhost:8084/docs
+  - ScoreAPI OpenAPI Docs: http://localhost:8082/docs
+  - ScoreAPI ReDoc: http://localhost:8082/redoc
+  - ScoreAPI Health: http://localhost:8082/health
+  - ProxyFHIR Health: http://localhost:8081/api/v1/fhir/health
+  - ProxyFHIR Actuator (health): http://localhost:8081/actuator/health
+  - ProxyFHIR Prometheus metrics: http://localhost:8081/actuator/prometheus
+
+- Infrastructure
+  - Kafka (interne, pour services): kafka:9092
+  - Kafka (hôte, pour tests locaux): localhost:9094
+  - Kafka Topics: `fhir.data.raw`, `fhir.data.anonymized`, `features.patient.ready`, `risk.score.calculated`
+  - PostgreSQL: postgres:5432 (hôte: localhost:5432)
+  - Base de données: healthflow | Utilisateur: healthflow | Mot de passe: healthflow123
+
+- Documentation
+  - README (présent document)
+  - Dépannage: TROUBLESHOOTING.md
+  - Vue d’ensemble: PROJECT_OVERVIEW.md
+  - État du projet: PROJECT_STATUS.md
+
+## ♻️ Voir le nouveau dashboard (rebuild)
+
+Si vous avez modifié le code du dashboard AuditFairness et que l’interface ne reflète pas les changements, reconstruisez uniquement ce service sans cache puis redémarrez-le.
+
+Commandes rapides:
+```bash
+# Depuis la racine du repo
+docker compose build --no-cache auditfairness
+docker compose up -d auditfairness
+```
+
+Ou utilisez le script d’aide:
+```bash
+bash scripts/rebuild_dashboard.sh
+```
+
+Astuces:
+- Rafraîchissez le navigateur avec un hard‑reload (Ctrl+F5) pour éviter le cache.
+- Consultez les logs du service pour vérifier le démarrage:
+  ```bash
+  docker compose logs -f --tail=100 auditfairness
+  ```
+- Si des dépendances Python ont changé, exécutez la reconstruction complète au premier essai.
 
 ### 🧪 Test du Pipeline Complet
 
@@ -627,3 +677,83 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 ---
 
 **HealthFlow-MS** - *Transforming Healthcare through Intelligent Risk Assessment*
+
+
+## ❓ Où insérer des données ? (Where to insert data)
+
+Selon votre besoin, il existe trois façons d’alimenter le système:
+
+1) Chemin recommandé (réaliste) — via ProxyFHIR et le serveur FHIR public
+- Objectif: Ingestion FHIR réelle puis pipeline EDA (Kafka) jusqu’aux scores.
+- Étapes:
+  - Démarrer la stack: docker compose up -d --build
+  - Choisir un Patient ID valide depuis https://hapi.fhir.org/baseR4 (ex. un id que vous voyez via l’UI HAPI)
+  - Ingestion: curl -X POST http://localhost:8081/api/v1/fhir/sync/patient/<PATIENT_ID>
+  - Le service ProxyFHIR écrit le bundle brut dans PostgreSQL (table fhir_bundles) et publie un message dans Kafka (fhir.data.raw).
+  - DeID, Featurizer, ModelRisque consomment en chaîne et finissent par écrire les résultats dans prediction_results.
+
+2) Chemin développeur — via Kafka (pipeline simulé)
+- Objectif: Tester une partie du pipeline sans le FHIR externe.
+- Référence: scripts/test_pipeline.sh (exemple de test bout‑à‑bout). Vous pouvez publier manuellement dans les topics Kafka si nécessaire.
+- Kafka interne pour les services: kafka:9092 (hôte: localhost:9094)
+- Topics clés: fhir.data.raw → fhir.data.anonymized → features.patient.ready → risk.score.calculated
+
+3) Chemin rapide (démo/UX) — injection directe en base
+- Objectif: Voir immédiatement des scores dans ScoreAPI et des graphiques dans le dashboard sans attendre le pipeline.
+- Commande:
+  - bash scripts/seed_sample_data.sh
+- Ce script insère quelques lignes réalistes dans la table prediction_results.
+- Vérification rapide:
+  - docker compose exec postgres psql -U healthflow -d healthflow -c "SELECT patient_pseudo_id, risk_score, prediction_timestamp FROM prediction_results ORDER BY prediction_timestamp DESC LIMIT 10;"
+- Ensuite:
+  - ScoreAPI: http://localhost:8082/docs (GET /api/v1/score/{patient_pseudo_id})
+  - Dashboard: http://localhost:8083 (mettre DASH_DEMO_MODE=0 dans docker-compose.yml pour désactiver le mode démo)
+
+Notes importantes
+- fhir_bundles (brut) est alimentée uniquement par ProxyFHIR. N’insérez pas directement des bundles bruts sauf cas de test contrôlé.
+- prediction_results est la table lue par ScoreAPI et AuditFairness. Pour des démonstrations rapides, l’injection directe via scripts/seed_sample_data.sh est la plus simple.
+- Sécurité: ScoreAPI requiert un JWT pour les endpoints protégés. Générez un token via POST /auth/token (voir section « Test du Pipeline Complet » ci‑dessus).
+
+
+## 🧰 Gestion des nouvelles données (DataManager)
+
+Le service DataManager permet d’ajouter, modifier, supprimer et lister des résultats de prédiction, ainsi que de déclencher l’ingestion FHIR manuellement.
+
+- UI de documentation: http://localhost:8084/docs
+- Port conteneur: 8001 (exposé en 8084 côté hôte)
+
+Endpoints clés (tous protégés par JWT):
+- POST /auth/token → génère un token de développement (à utiliser en Authorization: Bearer ...)
+- POST /api/v1/predictions → créer une ligne dans prediction_results
+- GET /api/v1/predictions → lister
+- GET /api/v1/predictions/{id} → récupérer par id
+- PUT /api/v1/predictions/{id} → mettre à jour
+- DELETE /api/v1/predictions/{id} → supprimer
+- POST /api/v1/ingest/patient/{patient_id} → relayer une ingestion vers ProxyFHIR
+
+Exemples rapides:
+```bash
+# 1) Obtenir un token (dev)
+TOKEN=$(curl -s -X POST http://localhost:8084/auth/token | jq -r .access_token)
+
+# 2) Créer un résultat de prédiction
+curl -s -X POST http://localhost:8084/api/v1/predictions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patient_pseudo_id": "PSEUDO_DEMO_1",
+    "risk_score": 0.73,
+    "prediction_confidence": 0.85,
+    "shap_values_json": {"age": 0.02, "heart_rate_mean": 0.04},
+    "feature_vector_json": {"age": 67, "heart_rate_mean": 82},
+    "model_version": "v1.0"
+  }'
+
+# 3) Vérifier via ScoreAPI (utiliser le token ScoreAPI si configuré)
+curl -s http://localhost:8082/docs
+
+# 4) Voir dans le dashboard (mettre DASH_DEMO_MODE=0 pour afficher uniquement les données réelles)
+open http://localhost:8083
+```
+
+Sécurité: en production, configurez un SECRET distinct (JWT_SECRET_KEY) et désactivez l’endpoint /auth/token. 
