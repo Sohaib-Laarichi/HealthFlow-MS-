@@ -9,7 +9,7 @@
 [![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-Event%20Streaming-orange.svg)](https://kafka.apache.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## � Vue d'ensemble
+## 🗺️ Vue d'ensemble
 
 HealthFlow-MS est une plateforme MLOps complète conçue pour l'analyse de risque médical en temps réel. Elle traite les données FHIR R4, applique des algorithmes d'intelligence artificielle pour prédire les risques de santé, et fournit des explications interprétables pour soutenir les décisions cliniques.
 
@@ -20,6 +20,17 @@ HealthFlow-MS est une plateforme MLOps complète conçue pour l'analyse de risqu
 - **IA Médicale** : Prédiction de risques avec modèles XGBoost et BioBERT
 - **Explicabilité** : Visualisations SHAP pour l'interprétabilité des modèles
 - **Monitoring** : Surveillance de la dérive des données et de l'équité des algorithmes
+
+## 🆕 Mises à jour récentes (2025-10)
+
+- Docker Compose: commandes mises à jour vers `docker compose` (v2) et ajout de `--build` lors du premier lancement.
+- Kafka: configuration d’écouteurs annoncés corrigée pour un fonctionnement inter-conteneurs (`PLAINTEXT://kafka:9092, PLAINTEXT_HOST://localhost:9094`).
+- ProxyFHIR: image runtime durcie, healthcheck via Actuator, et client FHIR initialisé au démarrage.
+- ScoreAPI: healthcheck basé sur curl dans le conteneur, docs disponibles sur `/docs`.
+- AuditFairness: design modernisé (thème Bootstrap Minty, navbar, cartes, loaders, footer).
+- Dépendances Python: corrections mineures (evidently compatible Pydantic v2, renommage `python-dateutil`, suppression d’entrées stdlib erronées).
+
+Voir TROUBLESHOOTING.md pour les conseils de débogage courants.
 
 ## 🏗️ Architecture du Système
 
@@ -77,12 +88,12 @@ cd HealthFlow-MS
 
 2. **Lancer l'environnement complet**
 ```bash
-docker-compose up -d
+docker compose up -d --build
 ```
 
 3. **Vérifier le statut des services**
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 4. **Accéder aux interfaces**
@@ -539,16 +550,11 @@ docker-compose logs -t
 5. **Logging** : ELK Stack
 
 #### Scaling Horizontal
-```yaml
-# docker-compose.override.yml
-version: '3.8'
-services:
-  featurizer:
-    scale: 3
-  modelrisque:
-    scale: 2
-  scoreapi:
-    scale: 3
+```bash
+# Mise à l'échelle avec Docker Compose v2 (exemples)
+docker compose up -d --scale featurizer=3
+docker compose up -d --scale modelrisque=2
+docker compose up -d --scale scoreapi=3
 ```
 
 #### Optimisations Kafka

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -25,8 +26,8 @@ public class FhirClientService {
     @Value("${fhir.server.base-url:https://hapi.fhir.org/baseR4}")
     private String fhirServerBaseUrl;
 
-    private final FhirContext fhirContext;
-    private final IGenericClient fhirClient;
+    private FhirContext fhirContext;
+    private IGenericClient fhirClient;
     private final FhirBundleRepository fhirBundleRepository;
     private final KafkaProducerService kafkaProducerService;
 
@@ -35,8 +36,13 @@ public class FhirClientService {
                            KafkaProducerService kafkaProducerService) {
         this.fhirBundleRepository = fhirBundleRepository;
         this.kafkaProducerService = kafkaProducerService;
+    }
+
+    @PostConstruct
+    public void init() {
         this.fhirContext = FhirContext.forR4();
         this.fhirClient = fhirContext.newRestfulGenericClient(fhirServerBaseUrl);
+        logger.info("Initialized FHIR client with base URL: {}", fhirServerBaseUrl);
     }
 
     /**

@@ -277,22 +277,33 @@ class AuditFairnessAnalyzer:
 analyzer = AuditFairnessAnalyzer()
 
 # Initialize Dash app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 app.title = "HealthFlow Audit & Fairness Dashboard"
+
+# Navbar
+navbar = dbc.Navbar(
+    dbc.Container([
+        dbc.NavbarBrand("HealthFlow • Audit & Fairness", className="fw-bold"),
+        dbc.Nav(
+            [
+                dbc.NavItem(dbc.NavLink("Docs", href="https://github.com/your-org/HealthFlow-MS", target="_blank")),
+                dbc.NavItem(dbc.NavLink("ScoreAPI", href="http://localhost:8082/docs", target="_blank")),
+            ], navbar=True
+        ),
+    ]),
+    color="primary",
+    dark=True,
+    className="mb-4 shadow"
+)
 
 # Define the layout
 app.layout = dbc.Container([
-    dbc.Row([
-        dbc.Col([
-            html.H1("HealthFlow Audit & Fairness Dashboard", className="text-center mb-4"),
-            html.Hr()
-        ])
-    ]),
-    
+    navbar,
+
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader("Time Period Selection"),
+                dbc.CardHeader("Time Period", className="fw-semibold"),
                 dbc.CardBody([
                     dcc.Dropdown(
                         id='time-period-dropdown',
@@ -306,65 +317,78 @@ app.layout = dbc.Container([
                         value=7,
                         placeholder="Select time period"
                     ),
-                    html.Div(id="data-summary", className="mt-3")
+                    dcc.Loading(html.Div(id="data-summary", className="mt-3"), type="dot")
                 ])
-            ])
+            ], className="shadow-sm")
         ], width=4),
         
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader("Model Performance Overview"),
+                dbc.CardHeader("Model Performance Overview", className="fw-semibold"),
                 dbc.CardBody([
-                    html.Div(id="performance-metrics")
+                    dcc.Loading(html.Div(id="performance-metrics"), type="dot")
                 ])
-            ])
+            ], className="shadow-sm")
         ], width=8)
-    ], className="mb-4"),
+    ], className="mb-4 g-4"),
     
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader("Risk Score Distribution"),
+                dbc.CardHeader("Risk Score Distribution", className="fw-semibold"),
                 dbc.CardBody([
-                    dcc.Graph(id="risk-distribution-chart")
+                    dcc.Loading(dcc.Graph(id="risk-distribution-chart"), type="cube")
                 ])
-            ])
+            ], className="shadow-sm h-100")
         ], width=6),
         
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader("Temporal Trends"),
+                dbc.CardHeader("Temporal Trends", className="fw-semibold"),
                 dbc.CardBody([
-                    dcc.Graph(id="temporal-trends-chart")
+                    dcc.Loading(dcc.Graph(id="temporal-trends-chart"), type="cube")
                 ])
-            ])
+            ], className="shadow-sm h-100")
         ], width=6)
-    ], className="mb-4"),
+    ], className="mb-4 g-4"),
     
     dbc.Row([
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader("Fairness Analysis"),
+                dbc.CardHeader("Fairness Analysis", className="fw-semibold"),
                 dbc.CardBody([
-                    html.Div(id="fairness-analysis")
+                    dcc.Loading(html.Div(id="fairness-analysis"), type="dot")
                 ])
-            ])
+            ], className="shadow-sm h-100")
         ], width=6),
         
         dbc.Col([
             dbc.Card([
-                dbc.CardHeader("Data Drift Detection"),
+                dbc.CardHeader("Data Drift Detection", className="fw-semibold"),
                 dbc.CardBody([
-                    html.Div(id="drift-analysis")
+                    dcc.Loading(html.Div(id="drift-analysis"), type="dot")
                 ])
-            ])
+            ], className="shadow-sm h-100")
         ], width=6)
-    ], className="mb-4"),
+    ], className="mb-4 g-4"),
     
     dcc.Interval(
         id='interval-component',
         interval=60*1000,  # Update every minute
         n_intervals=0
+    ),
+
+    html.Footer(
+        dbc.Container(
+            dbc.Row(
+                dbc.Col(
+                    html.Small(
+                        "© " + str(datetime.now().year) + " HealthFlow-MS — Modern UI", 
+                        className="text-muted"
+                    ), width=12
+                )
+            ), className="py-3"
+        )
     )
 ], fluid=True)
 
