@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
+from fastapi.responses import RedirectResponse
 
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -103,6 +104,11 @@ def health():
     except Exception as e:
         ok = False
     return {"status": "healthy" if ok else "unhealthy", "timestamp": datetime.utcnow().isoformat()}
+
+# Convenience: redirect root to /docs for easier discovery
+@app.get("/", include_in_schema=False)
+def root_redirect():
+    return RedirectResponse(url="/docs")
 
 # CRUD Endpoints
 @app.post("/api/v1/predictions", response_model=PredictionOut)

@@ -127,6 +127,32 @@ docker compose ps
   - Vue d’ensemble: PROJECT_OVERVIEW.md
   - État du projet: PROJECT_STATUS.md
 
+## 📡 Données du dashboard depuis HAPI FHIR
+
+Pour que le dashboard affiche des données réelles issues de HAPI FHIR (https://hapi.fhir.org/baseR4/), suivez ces étapes:
+
+1) Démarrer la stack
+- docker compose up -d --build
+
+2) Désactiver le mode démo du dashboard (déjà configuré par défaut)
+- Le service AuditFairness est lancé avec DASH_DEMO_MODE=0 dans docker-compose.yml, il n'affichera donc que les données réelles présentes en base.
+
+3) Ingérer un patient réel depuis HAPI FHIR
+- Choisir un Patient ID valide visible sur https://hapi.fhir.org/baseR4
+- Lancer l'ingestion via ProxyFHIR:
+  - curl -X POST http://localhost:8081/api/v1/fhir/sync/patient/<PATIENT_ID>
+
+4) Laisser le pipeline traiter
+- DeID anonymise → Featurizer extrait les features → ModelRisque calcule le score et écrit dans PostgreSQL (prediction_results).
+- Suivre les logs si besoin:
+  - docker compose logs -f deid featurizer modelrisque
+
+5) Consulter les résultats
+- ScoreAPI: http://localhost:8082/docs (GET /api/v1/score/{patient_pseudo_id})
+- Dashboard: http://localhost:8083 (les graphiques doivent refléter les données réelles)
+
+Astuce: si aucune donnée n’apparaît, vérifiez que le Patient ID existe bien sur HAPI et patientez quelques instants le temps que le pipeline termine le traitement.
+
 ## ♻️ Voir le nouveau dashboard (rebuild)
 
 Si vous avez modifié le code du dashboard AuditFairness et que l’interface ne reflète pas les changements, reconstruisez uniquement ce service sans cache puis redémarrez-le.

@@ -340,17 +340,29 @@ app.title = "HealthFlow Audit & Fairness Dashboard"
 # Navbar
 navbar = dbc.Navbar(
     dbc.Container([
-        dbc.NavbarBrand("HealthFlow • Audit & Fairness", className="fw-bold"),
+        dbc.NavbarBrand(
+            html.Span("HealthFlow • Audit & Fairness", className="brand-glow fw-bold")
+        ),
         dbc.Nav(
             [
                 dbc.NavItem(dbc.NavLink("Docs", href="https://github.com/your-org/HealthFlow-MS", target="_blank")),
                 dbc.NavItem(dbc.NavLink("ScoreAPI", href="http://localhost:8082/docs", target="_blank")),
             ], navbar=True
         ),
+        dbc.NavbarToggler(id="navbar-toggler"),
+        dbc.Collapse(
+            dbc.Nav([
+                dbc.NavItem(
+                    dbc.Switch(id="theme-toggle", label="Dark Mode", value=False, className="ms-3")
+                )
+            ], className="ms-auto", navbar=True),
+            id="navbar-collapse",
+            navbar=True
+        )
     ]),
     color="primary",
     dark=True,
-    className="mb-4 shadow"
+    className="mb-4 shadow modern-navbar"
 )
 
 # Define the layout
@@ -361,101 +373,111 @@ _demo_banner = dbc.Alert(
     className="mb-3"
 ) if DEMO_MODE else html.Div()
 
-app.layout = dbc.Container([
-    navbar,
-    _demo_banner,
+app.layout = html.Div(id="theme-root", className="theme-light", children=[
+    dbc.Container([
+        navbar,
+        _demo_banner,
 
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Time Period", className="fw-semibold"),
-                dbc.CardBody([
-                    dcc.Dropdown(
-                        id='time-period-dropdown',
-                        options=[
-                            {'label': 'Last 24 hours', 'value': 1},
-                            {'label': 'Last 3 days', 'value': 3},
-                            {'label': 'Last 7 days', 'value': 7},
-                            {'label': 'Last 14 days', 'value': 14},
-                            {'label': 'Last 30 days', 'value': 30}
-                        ],
-                        value=7,
-                        placeholder="Select time period"
-                    ),
-                    dcc.Loading(html.Div(id="data-summary", className="mt-3"), type="dot")
-                ])
-            ], className="shadow-sm")
-        ], width=4),
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Time Period", className="fw-semibold"),
+                    dbc.CardBody([
+                        dcc.Dropdown(
+                            id='time-period-dropdown',
+                            options=[
+                                {'label': 'Last 24 hours', 'value': 1},
+                                {'label': 'Last 3 days', 'value': 3},
+                                {'label': 'Last 7 days', 'value': 7},
+                                {'label': 'Last 14 days', 'value': 14},
+                                {'label': 'Last 30 days', 'value': 30}
+                            ],
+                            value=7,
+                            placeholder="Select time period"
+                        ),
+                        dcc.Loading(html.Div(id="data-summary", className="mt-3"), type="dot")
+                    ])
+                ], className="shadow-sm glass-card fade-in-up")
+            ], width=4),
+            
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Model Performance Overview", className="fw-semibold"),
+                    dbc.CardBody([
+                        dcc.Loading(html.Div(id="performance-metrics"), type="dot")
+                    ])
+                ], className="shadow-sm glass-card fade-in-up")
+            ], width=8)
+        ], className="mb-4 g-4"),
         
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Model Performance Overview", className="fw-semibold"),
-                dbc.CardBody([
-                    dcc.Loading(html.Div(id="performance-metrics"), type="dot")
-                ])
-            ], className="shadow-sm")
-        ], width=8)
-    ], className="mb-4 g-4"),
-    
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Risk Score Distribution", className="fw-semibold"),
-                dbc.CardBody([
-                    dcc.Loading(dcc.Graph(id="risk-distribution-chart"), type="cube")
-                ])
-            ], className="shadow-sm h-100")
-        ], width=6),
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Risk Score Distribution", className="fw-semibold"),
+                    dbc.CardBody([
+                        dcc.Loading(dcc.Graph(id="risk-distribution-chart"), type="cube")
+                    ])
+                ], className="shadow-sm h-100 glass-card fade-in-up")
+            ], width=6),
+            
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Temporal Trends", className="fw-semibold"),
+                    dbc.CardBody([
+                        dcc.Loading(dcc.Graph(id="temporal-trends-chart"), type="cube")
+                    ])
+                ], className="shadow-sm h-100 glass-card fade-in-up")
+            ], width=6)
+        ], className="mb-4 g-4"),
         
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Temporal Trends", className="fw-semibold"),
-                dbc.CardBody([
-                    dcc.Loading(dcc.Graph(id="temporal-trends-chart"), type="cube")
-                ])
-            ], className="shadow-sm h-100")
-        ], width=6)
-    ], className="mb-4 g-4"),
-    
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Fairness Analysis", className="fw-semibold"),
-                dbc.CardBody([
-                    dcc.Loading(html.Div(id="fairness-analysis"), type="dot")
-                ])
-            ], className="shadow-sm h-100")
-        ], width=6),
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Fairness Analysis", className="fw-semibold"),
+                    dbc.CardBody([
+                        dcc.Loading(html.Div(id="fairness-analysis"), type="dot")
+                    ])
+                ], className="shadow-sm h-100 glass-card fade-in-up")
+            ], width=6),
+            
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Data Drift Detection", className="fw-semibold"),
+                    dbc.CardBody([
+                        dcc.Loading(html.Div(id="drift-analysis"), type="dot")
+                    ])
+                ], className="shadow-sm h-100 glass-card fade-in-up")
+            ], width=6)
+        ], className="mb-4 g-4"),
         
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Data Drift Detection", className="fw-semibold"),
-                dbc.CardBody([
-                    dcc.Loading(html.Div(id="drift-analysis"), type="dot")
-                ])
-            ], className="shadow-sm h-100")
-        ], width=6)
-    ], className="mb-4 g-4"),
-    
-    dcc.Interval(
-        id='interval-component',
-        interval=60*1000,  # Update every minute
-        n_intervals=0
-    ),
+        dcc.Interval(
+            id='interval-component',
+            interval=60*1000,  # Update every minute
+            n_intervals=0
+        ),
 
-    html.Footer(
-        dbc.Container(
-            dbc.Row(
-                dbc.Col(
-                    html.Small(
-                        "© " + str(datetime.now().year) + " HealthFlow-MS — Modern UI", 
-                        className="text-muted"
-                    ), width=12
-                )
-            ), className="py-3"
+        html.Footer(
+            dbc.Container(
+                dbc.Row(
+                    dbc.Col(
+                        html.Small(
+                            "© " + str(datetime.now().year) + " HealthFlow-MS — Modern UI", 
+                            className="text-muted"
+                        ), width=12
+                    )
+                ), className="py-3"
+            )
         )
-    )
-], fluid=True)
+    ], fluid=True)
+])
+
+# Theme switcher callback
+@app.callback(
+    Output('theme-root', 'className'),
+    Input('theme-toggle', 'value')
+)
+def _set_theme_class(is_dark):
+    return 'theme-dark' if is_dark else 'theme-light'
 
 # Callbacks
 @app.callback(
@@ -466,17 +488,24 @@ app.layout = dbc.Container([
      Output('fairness-analysis', 'children'),
      Output('drift-analysis', 'children')],
     [Input('time-period-dropdown', 'value'),
-     Input('interval-component', 'n_intervals')]
+     Input('interval-component', 'n_intervals'),
+     Input('theme-toggle', 'value')]
 )
-def update_dashboard(days_back, n_intervals):
+def update_dashboard(days_back, n_intervals, is_dark):
     """Update all dashboard components"""
     try:
+        # Visualization theme
+        template = 'plotly_dark' if is_dark else 'plotly_white'
+        paper_bg = 'rgba(0,0,0,0)'
+        plot_bg = 'rgba(0,0,0,0)'
+
         # Fetch data
         df = analyzer.get_prediction_data(days_back)
         
         if df.empty:
             empty_fig = go.Figure()
             empty_fig.add_annotation(text="No data available", showarrow=False)
+            empty_fig.update_layout(template=template, paper_bgcolor=paper_bg, plot_bgcolor=plot_bg)
             
             return (
                 dbc.Alert("No data available for the selected period", color="warning"),
@@ -505,7 +534,7 @@ def update_dashboard(days_back, n_intervals):
                             html.H4(f"{metrics.get('mean_risk_score', 0):.3f}", className="card-title"),
                             html.P("Mean Risk Score", className="card-text")
                         ])
-                    ])
+                    ], className="stat-card")
                 ], width=3),
                 dbc.Col([
                     dbc.Card([
@@ -513,7 +542,7 @@ def update_dashboard(days_back, n_intervals):
                             html.H4(f"{metrics.get('std_risk_score', 0):.3f}", className="card-title"),
                             html.P("Risk Score Std", className="card-text")
                         ])
-                    ])
+                    ], className="stat-card")
                 ], width=3),
                 dbc.Col([
                     dbc.Card([
@@ -521,7 +550,7 @@ def update_dashboard(days_back, n_intervals):
                             html.H4(f"{metrics.get('total_predictions', 0)}", className="card-title"),
                             html.P("Total Predictions", className="card-text")
                         ])
-                    ])
+                    ], className="stat-card")
                 ], width=3),
                 dbc.Col([
                     dbc.Card([
@@ -529,7 +558,7 @@ def update_dashboard(days_back, n_intervals):
                             html.H4(f"{metrics.get('mean_confidence', 0) or 0:.3f}", className="card-title"),
                             html.P("Mean Confidence", className="card-text")
                         ])
-                    ])
+                    ], className="stat-card")
                 ], width=3)
             ])
         else:
@@ -541,7 +570,7 @@ def update_dashboard(days_back, n_intervals):
             title="Risk Score Distribution",
             labels={'risk_score': 'Risk Score', 'count': 'Frequency'}
         )
-        risk_dist_fig.update_layout(showlegend=False)
+        risk_dist_fig.update_layout(showlegend=False, template=template, paper_bgcolor=paper_bg, plot_bgcolor=plot_bg)
         
         # Temporal trends chart
         daily_df = df.set_index('prediction_timestamp').resample('D')['risk_score'].agg(['count', 'mean'])
@@ -559,7 +588,7 @@ def update_dashboard(days_back, n_intervals):
             go.Scatter(x=daily_df.index, y=daily_df['mean'], name='Mean Risk Score'),
             row=2, col=1
         )
-        temporal_fig.update_layout(height=400, showlegend=False)
+        temporal_fig.update_layout(height=400, showlegend=False, template=template, paper_bgcolor=paper_bg, plot_bgcolor=plot_bg)
         
         # Fairness analysis
         features_df = analyzer.extract_features_from_data(df)

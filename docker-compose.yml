@@ -136,7 +136,6 @@ services:
   auditfairness:
     build:
       context: ./auditfairness
-    
       dockerfile: Dockerfile
     ports:
       - "8083:8050"
@@ -146,6 +145,7 @@ services:
       POSTGRES_DB: healthflow
       POSTGRES_USER: healthflow
       POSTGRES_PASSWORD: healthflow123
+      DASH_DEMO_MODE: "0"
     depends_on:
       - postgres
       - scoreapi
