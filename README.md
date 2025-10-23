@@ -1,23 +1,25 @@
-# HealthFlow-MS: Plateforme MLOps pour l'Analyse de Risque Médical
+# 🏥 HealthFlow-MS
 
-[![Architecture](https://img.shields.io/badge/Architecture-Microservices-blue)](https://microservices.io/)
-[![Python](https://img.shields.io/badge/Python-3.11-blue)](https://python.org)
-[![Java](https://img.shields.io/badge/Java-17-orange)](https://openjdk.java.net/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-blue)](https://docker.com)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+**Plateforme intelligente d'analyse de risque médical basée sur des microservices**
 
-## 🏥 Vue d'Ensemble
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green.svg)](https://spring.io/projects/spring-boot)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
+[![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-Event%20Streaming-orange.svg)](https://kafka.apache.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-HealthFlow-MS est une plateforme complète de MLOps dédiée à l'analyse de risque médical utilisant des données FHIR. Le système implémente une architecture microservices event-driven pour traiter, anonymiser et analyser les données médicales tout en respectant les principes de sécurité et de conformité healthcare.
+## � Vue d'ensemble
 
-### 🎯 Objectifs Principaux
+HealthFlow-MS est une plateforme MLOps complète conçue pour l'analyse de risque médical en temps réel. Elle traite les données FHIR R4, applique des algorithmes d'intelligence artificielle pour prédire les risques de santé, et fournit des explications interprétables pour soutenir les décisions cliniques.
 
-- **Ingestion Sécurisée** : Récupération et stockage des données FHIR depuis des serveurs externes
-- **Anonymisation Avancée** : Pseudonymisation cohérente des données sensibles
-- **Analyse NLP Médicale** : Extraction de features avec BioBERT et spaCy médical
-- **Prédiction de Risque** : Modèles XGBoost avec explicabilité SHAP
-- **API Sécurisée** : Exposition REST avec authentification JWT
-- **Monitoring d'Équité** : Dashboard de surveillance des biais et dérive
+### 🎯 Objectifs principaux
+
+- **Ingestion FHIR** : Traitement standardisé des données médicales
+- **Pseudonymisation** : Protection de la vie privée conforme HIPAA/GDPR
+- **IA Médicale** : Prédiction de risques avec modèles XGBoost et BioBERT
+- **Explicabilité** : Visualisations SHAP pour l'interprétabilité des modèles
+- **Monitoring** : Surveillance de la dérive des données et de l'équité des algorithmes
 
 ## 🏗️ Architecture du Système
 
