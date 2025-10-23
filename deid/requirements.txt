@@ -1,0 +1,11 @@
+faker==19.12.0
+kafka-python==2.0.2
+psycopg2-binary==2.9.7
+python-json-logger==2.0.7
+fhir.resources==7.0.2
+hashlib
+uuid
+re
+json
+logging
+configparser

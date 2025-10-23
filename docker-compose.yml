@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  # Infrastructure Services
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - healthflow-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      - healthflow-network
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: healthflow
+      POSTGRES_USER: healthflow
+      POSTGRES_PASSWORD: healthflow123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - healthflow-network
+
+  # Application Services
+  proxyfhir:
+    build:
+      context: ./proxyfhir
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/healthflow
+      SPRING_DATASOURCE_USERNAME: healthflow
+      SPRING_DATASOURCE_PASSWORD: healthflow123
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - healthflow-network
+
+  deid:
+    build:
+      context: ./deid
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: healthflow
+      POSTGRES_USER: healthflow
+      POSTGRES_PASSWORD: healthflow123
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - healthflow-network
+
+  featurizer:
+    build:
+      context: ./featurizer
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: healthflow
+      POSTGRES_USER: healthflow
+      POSTGRES_PASSWORD: healthflow123
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - healthflow-network
+
+  modelrisque:
+    build:
+      context: ./modelrisque
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: healthflow
+      POSTGRES_USER: healthflow
+      POSTGRES_PASSWORD: healthflow123
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - healthflow-network
+
+  scoreapi:
+    build:
+      context: ./scoreapi
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8000"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: healthflow
+      POSTGRES_USER: healthflow
+      POSTGRES_PASSWORD: healthflow123
+      JWT_SECRET_KEY: your-super-secret-jwt-key-change-in-production
+    depends_on:
+      - postgres
+    networks:
+      - healthflow-network
+
+  auditfairness:
+    build:
+      context: ./auditfairness
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8050"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: healthflow
+      POSTGRES_USER: healthflow
+      POSTGRES_PASSWORD: healthflow123
+    depends_on:
+      - postgres
+    networks:
+      - healthflow-network
+
+volumes:
+  postgres_data:
+
+networks:
+  healthflow-network:
+    driver: bridge
